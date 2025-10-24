@@ -4,62 +4,98 @@ document.addEventListener("DOMContentLoaded", () => {
   const signupForm = document.getElementById("signup-form");
   const messageDiv = document.getElementById("message");
 
+  // Toolbar elements
+  const searchInput = document.getElementById("search-input");
+  const sortSelect = document.getElementById("sort-select");
+
   // Function to fetch activities from API
-  async function fetchActivities() {
-    try {
-      const response = await fetch("/activities");
-      const activities = await response.json();
 
-      // Clear loading message
-      activitiesList.innerHTML = "";
+  let allActivities = {};
 
-      // Populate activities list
-      Object.entries(activities).forEach(([name, details]) => {
-        const activityCard = document.createElement("div");
-        activityCard.className = "activity-card";
+  function renderActivities() {
+    // Get search and sort values
+    const searchValue = searchInput ? searchInput.value.toLowerCase() : "";
+    const sortValue = sortSelect ? sortSelect.value : "name";
 
-        const spotsLeft =
-          details.max_participants - details.participants.length;
+    // Convert activities to array for sorting/filtering
+    let activityArray = Object.entries(allActivities).map(([name, details]) => {
+      return {
+        name,
+        ...details,
+        spotsLeft: details.max_participants - details.participants.length,
+      };
+    });
 
-        // Create participants HTML with delete icons instead of bullet points
-        const participantsHTML =
-          details.participants.length > 0
-            ? `<div class="participants-section">
+    // Filter by search
+    if (searchValue) {
+      activityArray = activityArray.filter(
+        (a) =>
+          a.name.toLowerCase().includes(searchValue) ||
+          a.description.toLowerCase().includes(searchValue)
+      );
+    }
+
+    // Sort
+    if (sortValue === "name") {
+      activityArray.sort((a, b) => a.name.localeCompare(b.name));
+    } else if (sortValue === "spots") {
+      activityArray.sort((a, b) => b.spotsLeft - a.spotsLeft);
+    }
+
+    // Clear loading message
+    activitiesList.innerHTML = "";
+    activitySelect.innerHTML = "<option value=''>-- Select an activity --</option>";
+
+    activityArray.forEach((activity) => {
+      const activityCard = document.createElement("div");
+      activityCard.className = "activity-card";
+
+      // Create participants HTML with delete icons instead of bullet points
+      const participantsHTML =
+        activity.participants.length > 0
+          ? `<div class="participants-section">
               <h5>Participants:</h5>
               <ul class="participants-list">
-                ${details.participants
+                ${activity.participants
                   .map(
                     (email) =>
-                      `<li><span class="participant-email">${email}</span><button class="delete-btn" data-activity="${name}" data-email="${email}">❌</button></li>`
+                      `<li><span class="participant-email">${email}</span><button class="delete-btn" data-activity="${activity.name}" data-email="${email}">❌</button></li>`
                   )
                   .join("")}
               </ul>
             </div>`
-            : `<p><em>No participants yet</em></p>`;
+          : `<p><em>No participants yet</em></p>`;
 
-        activityCard.innerHTML = `
-          <h4>${name}</h4>
-          <p>${details.description}</p>
-          <p><strong>Schedule:</strong> ${details.schedule}</p>
-          <p><strong>Availability:</strong> ${spotsLeft} spots left</p>
-          <div class="participants-container">
-            ${participantsHTML}
-          </div>
-        `;
+      activityCard.innerHTML = `
+        <h4>${activity.name}</h4>
+        <p>${activity.description}</p>
+        <p><strong>Schedule:</strong> ${activity.schedule}</p>
+        <p><strong>Availability:</strong> ${activity.spotsLeft} spots left</p>
+        <div class="participants-container">
+          ${participantsHTML}
+        </div>
+      `;
 
-        activitiesList.appendChild(activityCard);
+      activitiesList.appendChild(activityCard);
 
-        // Add option to select dropdown
-        const option = document.createElement("option");
-        option.value = name;
-        option.textContent = name;
-        activitySelect.appendChild(option);
-      });
+      // Add option to select dropdown
+      const option = document.createElement("option");
+      option.value = activity.name;
+      option.textContent = activity.name;
+      activitySelect.appendChild(option);
+    });
 
-      // Add event listeners to delete buttons
-      document.querySelectorAll(".delete-btn").forEach((button) => {
-        button.addEventListener("click", handleUnregister);
-      });
+    // Add event listeners to delete buttons
+    document.querySelectorAll(".delete-btn").forEach((button) => {
+      button.addEventListener("click", handleUnregister);
+    });
+  }
+
+  async function fetchActivities() {
+    try {
+      const response = await fetch("/activities");
+      allActivities = await response.json();
+      renderActivities();
     } catch (error) {
       activitiesList.innerHTML =
         "<p>Failed to load activities. Please try again later.</p>";
@@ -154,6 +190,14 @@ document.addEventListener("DOMContentLoaded", () => {
       console.error("Error signing up:", error);
     }
   });
+
+  // Toolbar event listeners
+  if (searchInput) {
+    searchInput.addEventListener("input", renderActivities);
+  }
+  if (sortSelect) {
+    sortSelect.addEventListener("change", renderActivities);
+  }
 
   // Initialize app
   fetchActivities();

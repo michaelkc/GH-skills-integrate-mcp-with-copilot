@@ -14,11 +14,18 @@
 
     <main>
       <section id="activities-container">
-        <h3>Available Activities</h3>
-        <div id="activities-list">
-          <!-- Activities will be loaded here -->
-          <p>Loading activities...</p>
-        </div>
+          <h3>Available Activities</h3>
+          <div id="activities-toolbar" style="margin-bottom: 18px;">
+            <input type="text" id="search-input" placeholder="Search activities..." style="padding: 8px; width: 60%; max-width: 300px; margin-right: 10px;" />
+            <select id="sort-select" style="padding: 8px;">
+              <option value="name">Sort by Name</option>
+              <option value="spots">Sort by Availability</option>
+            </select>
+          </div>
+          <div id="activities-list">
+            <!-- Activities will be loaded here -->
+            <p>Loading activities...</p>
+          </div>
       </section>
 
       <section id="signup-container">
